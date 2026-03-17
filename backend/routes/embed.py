@@ -11,11 +11,17 @@ router = APIRouter()
 def embed_document(file_path: str):
     try:
         text = extract_text_from_file(file_path)
-        chunks = chunk_text(text)
-        embeddings = generate_embeddings(chunks)
+
+        # Detect file type from extension
+        extension = file_path.rsplit(".", 1)[-1].lower()
+        file_type = extension if extension in ["pdf", "txt", "log"] else "default"
+
+        chunks = chunk_text(text, file_type=file_type)
+        embeddings = generate_embeddings(chunks, source=file_path)
 
         return {
             "file_path": file_path,
+            "file_type": file_type,
             "total_chunks": len(chunks),
             "embedding_dimension": len(embeddings[0]) if embeddings else 0
         }
@@ -25,14 +31,13 @@ def embed_document(file_path: str):
 
 
 @router.get("/query")
-def query_documents(question: str, k: int = 5):
+def query_documents(question: str, k: int = 5, source: str = None):
     try:
         model = get_model()
         query_embedding = model.encode(question).tolist()
 
         store = FAISSStore(dimension=len(query_embedding))
-
-        results = store.search(query_embedding, k)
+        results = store.search(query_embedding, k, source_filter=source)
 
         if not results:
             return {
@@ -42,9 +47,18 @@ def query_documents(question: str, k: int = 5):
                 "chunks_returned": 0
             }
 
-        context = " ".join([r["text"] for r in results])
+        top_chunks = results[:3]
+        context = "\n\n".join([r["text"] for r in top_chunks])
+        answer = f"Based on the document context:\n\n{context[:600]}"
 
-        answer = f"Based on the document context: {context[:300]}..."
+        for r in results:
+            score = r["score"]
+            if score < 0.3:
+                r["confidence"] = "high"
+            elif score < 0.6:
+                r["confidence"] = "medium"
+            else:
+                r["confidence"] = "low"
 
         return {
             "question": question,

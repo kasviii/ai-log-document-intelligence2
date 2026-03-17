@@ -9,10 +9,16 @@ router = APIRouter()
 def chunk_document(file_path: str):
     try:
         text = extract_text_from_file(file_path)
-        chunks = chunk_text(text)
+
+        # Detect file type from extension
+        extension = file_path.rsplit(".", 1)[-1].lower()
+        file_type = extension if extension in ["pdf", "txt", "log"] else "default"
+
+        chunks = chunk_text(text, file_type=file_type)
 
         return {
             "file_path": file_path,
+            "file_type": file_type,
             "total_chunks": len(chunks),
             "sample_chunk": chunks[0][:300] if chunks else ""
         }
