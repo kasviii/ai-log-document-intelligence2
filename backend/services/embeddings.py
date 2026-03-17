@@ -1,9 +1,15 @@
 from sentence_transformers import SentenceTransformer
 from backend.vector_store.faiss_store import FAISSStore
 
+# Load once globally (important for performance)
+_model = None
 
-# Load once (important for performance)
-model = SentenceTransformer("all-MiniLM-L6-v2")
+
+def get_model() -> SentenceTransformer:
+    global _model
+    if _model is None:
+        _model = SentenceTransformer("all-MiniLM-L6-v2")
+    return _model
 
 
 def generate_embeddings(chunks: list[str]) -> list[list[float]]:
@@ -11,6 +17,7 @@ def generate_embeddings(chunks: list[str]) -> list[list[float]]:
     Generate embeddings locally using SentenceTransformers
     and persist them into FAISS.
     """
+    model = get_model()
     embeddings = model.encode(chunks, convert_to_numpy=True)
 
     embeddings_list = embeddings.tolist()

@@ -1,13 +1,10 @@
 from fastapi import APIRouter, HTTPException
 from backend.services.text_extraction import extract_text_from_file
 from backend.services.chunking import chunk_text
-from backend.services.embeddings import generate_embeddings
+from backend.services.embeddings import generate_embeddings, get_model
 from backend.vector_store.faiss_store import FAISSStore
-from sentence_transformers import SentenceTransformer
 
 router = APIRouter()
-
-model = SentenceTransformer("all-MiniLM-L6-v2")
 
 
 @router.get("/embed")
@@ -30,15 +27,30 @@ def embed_document(file_path: str):
 @router.get("/query")
 def query_documents(question: str, k: int = 5):
     try:
+        model = get_model()
         query_embedding = model.encode(question).tolist()
 
         store = FAISSStore(dimension=len(query_embedding))
 
         results = store.search(query_embedding, k)
 
+        if not results:
+            return {
+                "question": question,
+                "answer": "No relevant context found. Please upload and embed a document first.",
+                "retrieved_chunks": [],
+                "chunks_returned": 0
+            }
+
+        context = " ".join([r["text"] for r in results])
+
+        answer = f"Based on the document context: {context[:300]}..."
+
         return {
             "question": question,
-            "results": results
+            "answer": answer,
+            "retrieved_chunks": results,
+            "chunks_returned": len(results)
         }
 
     except Exception as e:
