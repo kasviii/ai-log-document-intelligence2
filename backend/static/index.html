@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Document Intelligence</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'Segoe UI', sans-serif;
+    background: #f5f7fa;
+    color: #333;
+    min-height: 100vh;
+  }
+
+  nav {
+    background: #fff;
+    border-bottom: 1px solid #e0e0e0;
+    padding: 16px 32px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  nav .logo {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2563eb;
+  }
+
+  nav .tagline {
+    font-size: 13px;
+    color: #888;
+  }
+
+  .main {
+    max-width: 800px;
+    margin: 40px auto;
+    padding: 0 20px;
+  }
+
+  h2 {
+    font-size: 22px;
+    font-weight: 600;
+    margin-bottom: 6px;
+    color: #1a1a1a;
+  }
+
+  .desc {
+    font-size: 14px;
+    color: #666;
+    margin-bottom: 32px;
+  }
+
+  .section {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 8px;
+    padding: 24px;
+    margin-bottom: 20px;
+  }
+
+  .section-title {
+    font-size: 13px;
+    font-weight: 600;
+    color: #2563eb;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 16px;
+  }
+
+  /* Upload */
+  .upload-box {
+    border: 2px dashed #d0d7de;
+    border-radius: 6px;
+    padding: 28px;
+    text-align: center;
+    cursor: pointer;
+    position: relative;
+    transition: border-color 0.2s, background 0.2s;
+  }
+
+  .upload-box:hover {
+    border-color: #2563eb;
+    background: #eff6ff;
+  }
+
+  .upload-box input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+  }
+
+  .upload-box p {
+    font-size: 14px;
+    color: #555;
+  }
+
+  .upload-box span {
+    color: #2563eb;
+    font-weight: 500;
+  }
+
+  .upload-box small {
+    display: block;
+    margin-top: 6px;
+    font-size: 12px;
+    color: #999;
+  }
+
+  /* Alert messages */
+  .alert {
+    margin-top: 12px;
+    padding: 10px 14px;
+    border-radius: 4px;
+    font-size: 13px;
+    display: none;
+  }
+  .alert.show { display: block; }
+  .alert.success { background: #f0fdf4; color: #166534; border: 1px solid #bbf7d0; }
+  .alert.error { background: #fef2f2; color: #991b1b; border: 1px solid #fecaca; }
+  .alert.info { background: #eff6ff; color: #1e40af; border: 1px solid #bfdbfe; }
+
+  /* File row */
+  .file-row {
+    display: flex;
+    gap: 10px;
+    margin-top: 14px;
+    display: none;
+  }
+
+  .file-row.show { display: flex; }
+
+  .file-path {
+    flex: 1;
+    background: #f8fafc;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 9px 12px;
+    font-size: 13px;
+    color: #555;
+  }
+
+  /* Buttons */
+  button {
+    padding: 9px 20px;
+    border-radius: 4px;
+    border: none;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+
+  .btn-blue {
+    background: #2563eb;
+    color: #fff;
+  }
+  .btn-blue:hover { background: #1d4ed8; }
+  .btn-blue:disabled { background: #93c5fd; cursor: not-allowed; }
+
+  /* Query */
+  .query-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  .query-row input {
+    flex: 1;
+    border: 1px solid #d0d7de;
+    border-radius: 4px;
+    padding: 10px 14px;
+    font-size: 14px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+
+  .query-row input:focus { border-color: #2563eb; }
+  .query-row input::placeholder { color: #aaa; }
+
+  /* Answer */
+  .answer-section { display: none; margin-top: 20px; }
+  .answer-section.show { display: block; }
+
+  .answer-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: #888;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 8px;
+  }
+
+  .answer-text {
+    background: #f8fafc;
+    border: 1px solid #e0e0e0;
+    border-left: 3px solid #2563eb;
+    border-radius: 4px;
+    padding: 16px;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #333;
+    white-space: pre-wrap;
+  }
+
+  .chunks-title {
+    font-size: 12px;
+    color: #888;
+    font-weight: 600;
+    text-transform: uppercase;
+    margin: 18px 0 8px;
+    letter-spacing: 0.05em;
+  }
+
+  .chunk {
+    background: #fff;
+    border: 1px solid #e0e0e0;
+    border-radius: 4px;
+    padding: 12px 14px;
+    margin-bottom: 8px;
+    font-size: 13px;
+    line-height: 1.6;
+    color: #444;
+  }
+
+  .chunk-meta {
+    font-size: 11px;
+    color: #999;
+    margin-bottom: 6px;
+    display: flex;
+    gap: 12px;
+  }
+
+  .chip {
+    background: #eff6ff;
+    color: #2563eb;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 500;
+  }
+  .chip.green { background: #f0fdf4; color: #166534; }
+  .chip.yellow { background: #fffbeb; color: #92400e; }
+  .chip.gray { background: #f3f4f6; color: #6b7280; }
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="logo">Docuu</div>
+  <div class="tagline">AI-powered document Q&amp;A using RAG</div>
+</nav>
+
+<div class="main">
+  <h2>Document Intelligence System</h2>
+  <p class="desc">Upload a PDF, TXT, or LOG file. The system will extract, chunk, and embed it — then answer your questions using semantic search.</p>
+
+  <!-- Upload Section -->
+  <div class="section">
+    <div class="section-title">Step 1 — Upload &amp; Embed Document</div>
+    <div class="upload-box" id="uploadBox">
+      <input type="file" id="fileInput" accept=".pdf,.txt,.log">
+      <p>Drag &amp; drop your file here, or <span>click to browse</span></p>
+      <small>Supported formats: .pdf, .txt, .log — Max size: 5MB</small>
+    </div>
+    <div class="alert" id="uploadAlert"></div>
+    <div class="file-row" id="fileRow">
+      <div class="file-path" id="filePath">—</div>
+      <button class="btn-blue" id="embedBtn" onclick="embedDocument()">Embed Document</button>
+    </div>
+    <div class="alert" id="embedAlert"></div>
+  </div>
+
+  <!-- Query Section -->
+  <div class="section">
+    <div class="section-title">Step 2 — Ask a Question</div>
+    <div class="query-row">
+      <input type="text" id="questionInput" placeholder="e.g. What are the course outcomes?"
+             onkeydown="if(event.key==='Enter') queryDocument()">
+      <button class="btn-blue" onclick="queryDocument()">Ask</button>
+    </div>
+    <div class="alert" id="queryAlert"></div>
+
+    <div class="answer-section" id="answerSection">
+      <div class="answer-label">Answer</div>
+      <div class="answer-text" id="answerText"></div>
+      <div class="chunks-title" id="chunksTitle"></div>
+      <div id="chunksList"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let uploadedPath = null;
+
+  document.getElementById('fileInput').addEventListener('change', e => {
+    if (e.target.files[0]) handleUpload(e.target.files[0]);
+  });
+
+  const uploadBox = document.getElementById('uploadBox');
+  uploadBox.addEventListener('dragover', e => { e.preventDefault(); uploadBox.style.borderColor = '#2563eb'; });
+  uploadBox.addEventListener('dragleave', () => uploadBox.style.borderColor = '');
+  uploadBox.addEventListener('drop', e => {
+    e.preventDefault();
+    uploadBox.style.borderColor = '';
+    if (e.dataTransfer.files[0]) handleUpload(e.dataTransfer.files[0]);
+  });
+
+  function showAlert(id, type, msg) {
+    const el = document.getElementById(id);
+    el.className = 'alert show ' + type;
+    el.textContent = msg;
+  }
+
+  async function handleUpload(file) {
+    showAlert('uploadAlert', 'info', 'Uploading...');
+    const formData = new FormData();
+    formData.append('file', file);
+    try {
+      const res = await fetch('/upload', { method: 'POST', body: formData });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail);
+      uploadedPath = data.path;
+      document.getElementById('filePath').textContent = data.path;
+      document.getElementById('fileRow').classList.add('show');
+      showAlert('uploadAlert', 'success', 'File uploaded successfully: ' + data.filename);
+    } catch(e) {
+      showAlert('uploadAlert', 'error', 'Error: ' + e.message);
+    }
+  }
+
+  async function embedDocument() {
+    if (!uploadedPath) return;
+    const btn = document.getElementById('embedBtn');
+    btn.disabled = true;
+    showAlert('embedAlert', 'info', 'Generating embeddings, please wait...');
+    try {
+      const res = await fetch('/embed?file_path=' + encodeURIComponent(uploadedPath));
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail);
+      showAlert('embedAlert', 'success', 
+        `Ready! ${data.total_chunks} chunks embedded with ${data.embedding_dimension}-dimensional vectors.`);
+    } catch(e) {
+      showAlert('embedAlert', 'error', 'Error: ' + e.message);
+      btn.disabled = false;
+    }
+  }
+
+  async function queryDocument() {
+    const question = document.getElementById('questionInput').value.trim();
+    if (!question) return;
+    showAlert('queryAlert', 'info', 'Searching...');
+    document.getElementById('answerSection').classList.remove('show');
+    try {
+      const res = await fetch('/query?question=' + encodeURIComponent(question) + '&k=5');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail);
+
+      const cleanAnswer = data.answer
+        .replace(/Based on the document context:\n\n/, '')
+        .replace(/\n{3,}/g, '\n\n')
+        .replace(/ {3,}/g, ' ')
+        .trim();
+
+      document.getElementById('answerText').textContent = cleanAnswer;
+      document.getElementById('chunksTitle').textContent = 
+        'Retrieved ' + data.chunks_returned + ' relevant sections';
+
+      const list = document.getElementById('chunksList');
+      list.innerHTML = '';
+      data.retrieved_chunks.forEach(chunk => {
+        const cleanText = chunk.text.replace(/\n+/g, ' ').replace(/ +/g, ' ').trim();
+        const chipClass = chunk.confidence === 'high' ? 'green' : chunk.confidence === 'medium' ? 'yellow' : 'gray';
+        list.innerHTML += `
+          <div class="chunk">
+            <div class="chunk-meta">
+              <span class="chip">chunk #${chunk.chunk_id}</span>
+              <span class="chip ${chipClass}">${chunk.confidence} confidence</span>
+              <span>score: ${chunk.score.toFixed(3)}</span>
+            </div>
+            ${cleanText}
+          </div>`;
+      });
+
+      document.getElementById('answerSection').classList.add('show');
+      showAlert('queryAlert', 'success', 'Found ' + data.chunks_returned + ' relevant sections.');
+    } catch(e) {
+      showAlert('queryAlert', 'error', 'Error: ' + e.message);
+    }
+  }
+</script>
+</body>
+</html>
